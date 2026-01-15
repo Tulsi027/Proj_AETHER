@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+require('dotenv').config();
 const pdf = require('pdf-parse'); // Renamed to 'pdf' to avoid naming conflicts
 const mammoth = require('mammoth');
 const { DebateCoordinator } = require('./coordinator');

@@ -5,7 +5,8 @@ export default function DebateView({ analysisId, debates, factors, currentState,
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const eventSource = new EventSource(`http://localhost:5000/api/analysis/${analysisId}/stream`);
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const eventSource = new EventSource(`${API_URL}/api/analysis/${analysisId}/stream`);
 
     eventSource.onmessage = (event) => {
       try {

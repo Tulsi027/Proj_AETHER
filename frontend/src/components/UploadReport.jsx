@@ -175,7 +175,8 @@ export default function UploadReport({ onAnalysisStart }) {
       const formData = new FormData();
       formData.append('report', file);
 
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/analyze`, {
         method: 'POST',
         body: formData
       });
@@ -208,7 +209,8 @@ export default function UploadReport({ onAnalysisStart }) {
       const formData = new FormData();
       formData.append('report', sampleFile);
 
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/analyze`, {
         method: 'POST',
         body: formData
       });
