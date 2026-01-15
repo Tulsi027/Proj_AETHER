@@ -81,7 +81,10 @@ export default function UploadReport({ onAnalysisStart }) {
               Upload Your Report
             </h2>
             <p className="text-purple-200 text-lg">
-              PDF, Word, or Text files • Max 10MB
+              PDF, Word, Text, or Images (Charts/Diagrams) • Max 10MB
+            </p>
+            <p className="text-purple-300 text-sm mt-2">
+              📊 NEW: Upload charts, graphs, or diagrams for multimodal analysis!
             </p>
           </div>
 
@@ -95,7 +98,7 @@ export default function UploadReport({ onAnalysisStart }) {
             >
               <input
                 type="file"
-                accept=".pdf,.doc,.docx,.txt"
+                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload"
@@ -116,15 +119,33 @@ export default function UploadReport({ onAnalysisStart }) {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-600/10 to-purple-600/0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div className="relative text-center">
-                  <div className="text-8xl mb-4 animate-pulse">
-                    {file ? '✅' : '📤'}
-                  </div>
-                  <p className="text-white font-bold text-xl mb-2">
-                    {file ? file.name : 'Click or drag file here'}
-                  </p>
-                  <p className="text-purple-300 text-sm">
-                    {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Drag and drop your report here'}
-                  </p>
+                  {file && file.type.startsWith('image/') ? (
+                    <div className="mb-4">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt="Preview" 
+                        className="max-h-48 mx-auto rounded-lg border-2 border-purple-400 shadow-lg"
+                      />
+                      <p className="text-white font-bold text-xl mt-4">
+                        {file.name}
+                      </p>
+                      <p className="text-purple-300 text-sm">
+                        {`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-8xl mb-4 animate-pulse">
+                        {file ? '✅' : '📤'}
+                      </div>
+                      <p className="text-white font-bold text-xl mb-2">
+                        {file ? file.name : 'Click or drag file here'}
+                      </p>
+                      <p className="text-purple-300 text-sm">
+                        {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Drag and drop your report or image here'}
+                      </p>
+                    </>
+                  )}
                 </div>
               </label>
             </div>

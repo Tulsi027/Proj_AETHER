@@ -17,29 +17,39 @@ const activeAnalyses = new Map();
 
 /**
  * Helper to extract text from various file types.
- * Fixed the 'pdfParse is not a function' error by adding a compatibility check.
+ * Now supports images (PNG, JPG) for multimodal analysis.
  */
 async function extractText(file) {
   const buffer = file.buffer;
   
+  // Check if it's an image
+  if (file.mimetype.startsWith('image/')) {
+    // For images, we return a special object with the image data
+    const base64Image = buffer.toString('base64');
+    return {
+      type: 'image',
+      mimetype: file.mimetype,
+      data: base64Image,
+      text: '[Image uploaded for analysis - Chart/Diagram will be analyzed by vision model]'
+    };
+  }
+  
   if (file.mimetype === 'application/pdf') {
     try {
-      // FIX: Check if the required module is the function itself or contains a .default
       const parse = typeof pdf === 'function' ? pdf : pdf.default || pdf;
-      
       const data = await parse(buffer);
-      return data.text;
+      return { type: 'text', text: data.text };
     } catch (error) {
       console.error('PDF Parsing Logic Error:', error);
       throw new Error('Could not parse PDF. Ensure the file is not password protected.');
     }
   } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const result = await mammoth.extractRawText({ buffer });
-    return result.value;
+    return { type: 'text', text: result.value };
   } else if (file.mimetype === 'text/plain') {
-    return buffer.toString('utf-8');
+    return { type: 'text', text: buffer.toString('utf-8') };
   } else {
-    throw new Error('Unsupported file type. Please upload a PDF, DOCX, or TXT file.');
+    throw new Error('Unsupported file type. Please upload a PDF, DOCX, TXT, or image file (PNG/JPG).');
   }
 }
 
@@ -83,8 +93,8 @@ app.post('/api/analyze', upload.single('report'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // 1. Extract the text from the file
-    const reportText = await extractText(req.file);
+    // 1. Extract the text/image from the file
+    const reportData = await extractText(req.file);
     
     // 2. Create a unique ID for this analysis session
     const analysisId = Date.now().toString();
@@ -99,7 +109,7 @@ app.post('/api/analyze', upload.single('report'), async (req, res) => {
     activeAnalyses.set(analysisId, analysis);
 
     // 4. Start the AI Coordinator in the background (Non-blocking)
-    analysis.coordinator.processReport(reportText, (progress) => {
+    analysis.coordinator.processReport(reportData, (progress) => {
       // Push progress updates to all connected listeners (SSE)
       analysis.listeners.forEach(listener => listener(progress));
     }).catch(error => {
