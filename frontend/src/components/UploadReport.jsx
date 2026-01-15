@@ -1,5 +1,134 @@
 import { useState } from 'react';
 
+// Sample report data
+const SAMPLE_REPORTS = {
+  sales: `Q3 2025 Sales Performance Report
+
+EXECUTIVE SUMMARY
+Q3 2025 Revenue: $4.8M (down 15% from Q2)
+Total Units Sold: 12,450 (down 8%)
+Average Deal Size: $385 (down 7%)
+Customer Acquisition Cost: $892 (up 22%)
+
+REVENUE BREAKDOWN
+- Enterprise Segment: $2.9M (60% of total)
+- Mid-Market: $1.4M (29% of total)
+- SMB: $0.5M (11% of total)
+
+KEY CHALLENGES
+- 23% increase in customer churn rate (now at 8.5%)
+- Lead conversion dropped from 18% to 12%
+- Average sales cycle extended from 45 to 62 days
+- Marketing qualified leads down 31%
+
+REGIONAL PERFORMANCE
+- North America: $2.1M (-18% YoY)
+- EMEA: $1.8M (-12% YoY)
+- APAC: $0.9M (+5% YoY)
+
+RECOMMENDATIONS
+1. Implement customer success program to reduce churn
+2. Reallocate marketing budget toward high-performing APAC region
+3. Review pricing strategy for enterprise segment
+4. Accelerate product development for Q4 launch`,
+
+  retention: `Customer Retention Analysis 2025
+
+OVERVIEW
+Current Customer Base: 3,847 active customers
+Retention Rate: 91.5% (down from 94.2% in 2024)
+Average Customer Lifetime Value: $12,450
+Monthly Churn Rate: 2.1% (industry average: 1.8%)
+
+CHURN ANALYSIS
+Top Reasons for Customer Loss:
+1. Pricing concerns (38% of churned customers)
+2. Product complexity/usability (27%)
+3. Inadequate customer support (18%)
+4. Competitive offerings (12%)
+5. Other factors (5%)
+
+SEGMENT PERFORMANCE
+- Enterprise: 96% retention, $28K avg LTV
+- Mid-Market: 92% retention, $15K avg LTV
+- SMB: 87% retention, $6K avg LTV
+
+ENGAGEMENT METRICS
+- High-engagement customers: 98% retention
+- Medium-engagement: 91% retention
+- Low-engagement: 76% retention
+
+TIME TO CHURN
+- 0-3 months: 32% of all churn
+- 4-6 months: 28% of all churn
+- 7-12 months: 22% of all churn
+- 12+ months: 18% of all churn
+
+RECOMMENDATIONS
+1. Launch price optimization program for price-sensitive segments
+2. Improve onboarding process to reduce early churn
+3. Expand customer success team by 40%
+4. Develop competitive intelligence program
+5. Create engagement playbooks for at-risk customers`,
+
+  launch: `Product Launch Analysis - "Nexus Pro" Platform
+
+LAUNCH OVERVIEW
+Launch Date: September 15, 2025
+Pre-launch Signups: 4,200 users
+Week 1 Activations: 2,890 users (69% conversion)
+Current Active Users: 3,450 (Day 45)
+
+ADOPTION METRICS
+- Daily Active Users (DAU): 1,240
+- Weekly Active Users (WAU): 2,850
+- Monthly Active Users (MAU): 3,450
+- DAU/MAU Ratio: 36% (target was 40%)
+
+FEATURE USAGE
+Most Used Features:
+1. Dashboard Analytics (87% of users)
+2. Report Generation (73%)
+3. Team Collaboration (61%)
+4. API Integration (42%)
+5. Custom Workflows (28%)
+
+CUSTOMER FEEDBACK
+- Overall Satisfaction: 4.2/5.0
+- Net Promoter Score (NPS): +38
+- Feature Requests: 847 submitted
+- Bug Reports: 124 (78% resolved)
+
+REVENUE IMPACT
+- New Revenue: $385K (Month 1)
+- Average Revenue Per User: $112/month
+- Upgrade Rate (Free to Paid): 23%
+- Projected ARR: $4.6M
+
+COMPETITIVE ANALYSIS
+- Market Share Gained: 2.3%
+- Users from Competitors: 38%
+- Unique Value Proposition Rating: 4.5/5
+
+CHALLENGES IDENTIFIED
+1. Mobile app adoption below target (15% vs 30% expected)
+2. Enterprise segment slower to adopt (22% vs 35% projected)
+3. Integration setup time averaging 8 days (target was 3)
+4. Customer support tickets 40% higher than forecast
+
+SUCCESS INDICATORS
+✓ Exceeded Week 1 activation target by 15%
+✓ NPS above industry benchmark (+38 vs +30)
+✓ Revenue target achieved at 112% of goal
+✓ 89% of users completed onboarding
+
+NEXT STEPS
+1. Launch mobile app improvement sprint
+2. Develop enterprise onboarding program
+3. Create integration marketplace for faster setup
+4. Scale support team to handle ticket volume`
+};
+
 export default function UploadReport({ onAnalysisStart }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -45,6 +174,39 @@ export default function UploadReport({ onAnalysisStart }) {
     try {
       const formData = new FormData();
       formData.append('report', file);
+
+      const response = await fetch('http://localhost:5000/api/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      onAnalysisStart(data.analysisId);
+
+    } catch (err) {
+      setError(err.message);
+      setUploading(false);
+    }
+  };
+
+  const handleSampleReport = async (reportType) => {
+    setUploading(true);
+    setError(null);
+
+    try {
+      const reportText = SAMPLE_REPORTS[reportType];
+      
+      // Create a text file blob from the sample report
+      const blob = new Blob([reportText], { type: 'text/plain' });
+      const sampleFile = new File([blob], `${reportType}_report.txt`, { type: 'text/plain' });
+      
+      // Create form data and upload
+      const formData = new FormData();
+      formData.append('report', sampleFile);
 
       const response = await fetch('http://localhost:5000/api/analyze', {
         method: 'POST',
@@ -203,17 +365,26 @@ export default function UploadReport({ onAnalysisStart }) {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
-                { icon: '📊', text: 'Q3 Sales Performance' },
-                { icon: '👥', text: 'Customer Retention' },
-                { icon: '🚀', text: 'Product Launch Analysis' }
+                { icon: '📊', text: 'Q3 Sales Performance', key: 'sales' },
+                { icon: '👥', text: 'Customer Retention', key: 'retention' },
+                { icon: '🚀', text: 'Product Launch Analysis', key: 'launch' }
               ].map((sample, idx) => (
-                <div
+                <button
                   key={idx}
-                  className="flex items-center gap-2 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer border border-white/10"
+                  onClick={() => handleSampleReport(sample.key)}
+                  disabled={uploading}
+                  className={`
+                    flex items-center gap-2 p-3 rounded-lg transition-all duration-200
+                    border border-white/10 text-left
+                    ${uploading 
+                      ? 'bg-white/5 cursor-not-allowed opacity-50' 
+                      : 'bg-white/5 hover:bg-white/20 hover:scale-105 hover:shadow-lg hover:border-purple-400 active:scale-95 cursor-pointer'
+                    }
+                  `}
                 >
                   <span className="text-2xl">{sample.icon}</span>
                   <span className="text-purple-200 text-sm font-medium">{sample.text}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
