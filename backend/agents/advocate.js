@@ -20,25 +20,40 @@ Example output:
 }`;
 
 async function generateAdvocateArgument(factor, reportText) {
+  // Truncate report if too long to avoid token limits
+  const maxReportLength = 1500; // Reduced to 1500 characters
+  const truncatedReport = reportText.length > maxReportLength 
+    ? reportText.substring(0, maxReportLength) + '...[truncated]'
+    : reportText;
+    
   const prompt = `You are arguing IN SUPPORT of this factor:
 
 FACTOR: ${factor.name}
 DESCRIPTION: ${factor.description}
 CONTEXT: ${factor.context}
 
-FULL REPORT:
-${reportText}
+REPORT EXCERPT:
+${truncatedReport}
 
-Generate a strong supportive argument with evidence. Return as JSON.`;
+Generate a strong supportive argument with evidence. Return ONLY valid JSON, no other text.`;
 
-  const response = await callGemini(prompt, ADVOCATE_SYSTEM_PROMPT);
-  
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to generate advocate argument');
+  try {
+    const response = await callGemini(prompt, ADVOCATE_SYSTEM_PROMPT);
+    console.log('Advocate raw response:', response);
+    
+    // Try to extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in advocate response:', response);
+      throw new Error('Failed to generate advocate argument - no JSON in response');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+  } catch (error) {
+    console.error('Advocate error details:', error.message);
+    throw new Error(`Failed to generate advocate argument: ${error.message}`);
   }
-  
-  return JSON.parse(jsonMatch[0]);
 }
 
 module.exports = { generateAdvocateArgument };

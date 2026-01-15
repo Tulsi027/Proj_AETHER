@@ -36,6 +36,12 @@ Example output:
 }`;
 
 async function synthesizeDebate(factor, advocateArg, skepticArg, reportText) {
+  // Truncate report if too long to avoid token limits
+  const maxReportLength = 1000; // Reduced to 1000 characters
+  const truncatedReport = reportText.length > maxReportLength 
+    ? reportText.substring(0, maxReportLength) + '...[truncated]'
+    : reportText;
+    
   const prompt = `Synthesize this debate into actionable insights:
 
 FACTOR: ${factor.name} - ${factor.description}
@@ -50,19 +56,27 @@ SKEPTIC POSITION:
 - Evidence: ${JSON.stringify(skepticArg.evidence)}
 - Reasoning: ${skepticArg.reasoning}
 
-FULL REPORT CONTEXT:
-${reportText}
+REPORT CONTEXT:
+${truncatedReport}
 
-Create a balanced synthesis. Return as JSON with: factor, verdict, what_worked, what_failed, why_it_happened, how_to_improve, confidence.`;
+Create a balanced synthesis. Return ONLY valid JSON with: factor, verdict, what_worked, what_failed, why_it_happened, how_to_improve, confidence. No other text.`;
 
-  const response = await callGemini(prompt, SCRIBE_SYSTEM_PROMPT);
-  
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to synthesize debate');
+  try {
+    const response = await callGemini(prompt, SCRIBE_SYSTEM_PROMPT);
+    console.log('Scribe synthesis raw response:', response);
+    
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in scribe synthesis response:', response);
+      throw new Error('Failed to synthesize debate - no JSON in response');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+  } catch (error) {
+    console.error('Scribe synthesis error details:', error.message);
+    throw new Error(`Failed to synthesize debate: ${error.message}`);
   }
-  
-  return JSON.parse(jsonMatch[0]);
 }
 
 async function generateFinalReport(allSyntheses, reportText) {
@@ -73,22 +87,31 @@ ${JSON.stringify(allSyntheses, null, 2)}
 ORIGINAL REPORT:
 ${reportText}
 
-Generate an executive summary and prioritized recommendations across all factors. Format as JSON:
+Generate an executive summary and prioritized recommendations across all factors. Return ONLY valid JSON with this structure:
 {
   "executive_summary": "2-3 paragraph overview",
   "key_findings": ["finding 1", "finding 2", ...],
   "top_priorities": ["priority 1", "priority 2", "priority 3"],
   "overall_assessment": "Brief verdict"
-}`;
+}
+No other text.`;
 
-  const response = await callGemini(prompt, SCRIBE_SYSTEM_PROMPT);
-  
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to generate final report');
+  try {
+    const response = await callGemini(prompt, SCRIBE_SYSTEM_PROMPT);
+    console.log('Scribe final report raw response:', response);
+    
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in final report response:', response);
+      throw new Error('Failed to generate final report - no JSON in response');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+  } catch (error) {
+    console.error('Scribe final report error details:', error.message);
+    throw new Error(`Failed to generate final report: ${error.message}`);
   }
-  
-  return JSON.parse(jsonMatch[0]);
 }
 
 module.exports = { synthesizeDebate, generateFinalReport };

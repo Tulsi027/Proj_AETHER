@@ -23,6 +23,12 @@ Example output:
 }`;
 
 async function generateSkepticCounter(factor, advocateArgument, reportText) {
+  // Truncate report if too long to avoid token limits
+  const maxReportLength = 1500; // Reduced to 1500 characters
+  const truncatedReport = reportText.length > maxReportLength 
+    ? reportText.substring(0, maxReportLength) + '...[truncated]'
+    : reportText;
+    
   const prompt = `The Advocate made this argument:
 
 ADVOCATE'S CLAIM: ${advocateArgument.claim}
@@ -31,19 +37,27 @@ ADVOCATE'S REASONING: ${advocateArgument.reasoning}
 
 FACTOR CONTEXT: ${factor.description}
 
-FULL REPORT:
-${reportText}
+REPORT EXCERPT:
+${truncatedReport}
 
-Challenge this argument. Quote their claim, then present counter-evidence. Return as JSON.`;
+Challenge this argument. Quote their claim, then present counter-evidence. Return ONLY valid JSON, no other text.`;
 
-  const response = await callGemini(prompt, SKEPTIC_SYSTEM_PROMPT);
-  
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to generate skeptic counter');
+  try {
+    const response = await callGemini(prompt, SKEPTIC_SYSTEM_PROMPT);
+    console.log('Skeptic raw response:', response);
+    
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in skeptic response:', response);
+      throw new Error('Failed to generate skeptic counter - no JSON in response');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+  } catch (error) {
+    console.error('Skeptic error details:', error.message);
+    throw new Error(`Failed to generate skeptic counter: ${error.message}`);
   }
-  
-  return JSON.parse(jsonMatch[0]);
 }
 
 module.exports = { generateSkepticCounter };

@@ -30,17 +30,25 @@ async function extractFactors(reportText) {
 REPORT:
 ${reportText}
 
-Return a JSON array of factors with id, name, description, and context.`;
+Return ONLY a valid JSON array of factors with id, name, description, and context. No other text.`;
 
-  const response = await callGemini(prompt, ANALYST_SYSTEM_PROMPT);
-  
-  // Extract JSON from response (Gemini sometimes adds markdown)
-  const jsonMatch = response.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    throw new Error('Failed to extract factors');
+  try {
+    const response = await callGemini(prompt, ANALYST_SYSTEM_PROMPT);
+    console.log('Analyst raw response:', response);
+    
+    // Extract JSON from response (Gemini sometimes adds markdown)
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.error('No JSON array found in analyst response:', response);
+      throw new Error('Failed to extract factors - no JSON array in response');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+  } catch (error) {
+    console.error('Analyst error details:', error.message);
+    throw new Error(`Failed to extract factors: ${error.message}`);
   }
-  
-  return JSON.parse(jsonMatch[0]);
 }
 
 module.exports = { extractFactors };

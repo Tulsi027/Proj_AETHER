@@ -31,6 +31,11 @@ class DebateCoordinator {
       for (let i = 0; i < this.factors.length; i++) {
         const factor = this.factors[i];
         
+        // Add delay between factors to avoid rate limits
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        }
+        
         // STATE 2: ADVOCATE OPENING
         this.state = 'ADVOCATE_ARGUING';
         onProgress({ 
@@ -39,6 +44,7 @@ class DebateCoordinator {
           data: { currentFactor: i + 1, totalFactors: this.factors.length }
         });
         
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay before API call
         const advocateArg = await generateAdvocateArgument(factor, reportText);
         
         onProgress({
@@ -54,6 +60,7 @@ class DebateCoordinator {
           message: `🔴 The Skeptic is challenging the Advocate...`
         });
         
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay before API call
         const skepticArg = await generateSkepticCounter(factor, advocateArg, reportText);
         
         onProgress({
@@ -69,6 +76,7 @@ class DebateCoordinator {
           message: `⚖️ The Scribe is judging the debate...`
         });
         
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay before API call
         const synthesis = await synthesizeDebate(factor, advocateArg, skepticArg, reportText);
         
         this.debates.push({
